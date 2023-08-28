@@ -407,15 +407,15 @@ These settings are related to consumers that _produce messages to Kafka_.
 - `partitioner` – The strategy used to determine which topic partition a message is written to when Racecar produces a value to Kafka. The codec needs to be one of `consistent`, `consistent_random` `murmur2` `murmur2_random` `fnv1a` `fnv1a_random` either as a Symbol or a String, defaults to `consistent_random`
 - `producer_compression_codec` – If defined, Racecar will compress messages before writing them to Kafka. The codec needs to be one of `gzip`, `lz4`, or `snappy`, either as a Symbol or a String.
 
-#### Datadog monitoring
+#### StatsD monitoring
 
-Racecar supports [Datadog](https://www.datadoghq.com/) monitoring integration. If you're running a normal Datadog agent on your host, you just need to set `datadog_enabled` to `true`, as the rest of the settings come with sane defaults.
+Racecar supports [StatsD](https://github.com/statsd/statsd) monitoring integration. If you're running a normal StatsD agent on your host, you just need to set `statsd_enabled` to `true`, as the rest of the settings come with sane defaults.
 
-- `datadog_enabled` – Whether Datadog monitoring is enabled (defaults to `false`).
-- `datadog_host` – The host running the Datadog agent.
-- `datadog_port` – The port of the Datadog agent.
-- `datadog_namespace` – The namespace to use for Datadog metrics.
-- `datadog_tags` – Tags that should always be set on Datadog metrics.
+- `statsd_enabled` – Whether StatsD monitoring is enabled (defaults to `false`).
+- `statsd_namespace` – The namespace to use for StatsD metrics.
+- `statsd_tags` – Tags that should always be set on StatsD metrics.
+
+StatsD client configuration should be done via environment variable, as per the [the available option](https://github.com/Shopify/statsd-instrument#configuration).
 
 Furthermore, there's a [standard Datadog dashboard configuration file](https://raw.githubusercontent.com/zendesk/racecar/master/extra/datadog-dashboard.json) that you can import to get started with a Racecar dashboard for all of your consumers.
 

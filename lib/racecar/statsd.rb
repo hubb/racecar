@@ -1,48 +1,30 @@
 # frozen_string_literal: true
 
 begin
-  require "datadog/statsd"
+  require "statsd-instrument"
 rescue LoadError
-  $stderr.puts "In order to report Kafka client metrics to Datadog you need to install the `dogstatsd-ruby` gem."
+  $stderr.puts "In order to report Kafka client metrics to StatsD you need to install the `statsd-instrument` gem."
   raise
 end
 
 require "active_support/subscriber"
 
 module Racecar
-  module Datadog
+  module Statsd
     STATSD_NAMESPACE = "racecar"
 
     class << self
       def configure
+        Kernel.warn "StatsD configuration should be done via environment variables. See https://github.com/Shopify/statsd-instrument#configuration for details"
         yield self
       end
 
       def statsd
-        @statsd ||= ::Datadog::Statsd.new(host, port, namespace: namespace, tags: tags)
+        @statsd ||= ::StatsD::Instrument::Client.from_env(prefix: namespace, default_tags: tags)
       end
 
       def statsd=(statsd)
-        clear
         @statsd = statsd
-      end
-
-      def host
-        @host
-      end
-
-      def host=(host)
-        @host = host
-        clear
-      end
-
-      def port
-        @port
-      end
-
-      def port=(port)
-        @port = port
-        clear
       end
 
       def namespace
@@ -51,7 +33,6 @@ module Racecar
 
       def namespace=(namespace)
         @namespace = namespace
-        clear
       end
 
       def tags
@@ -60,25 +41,13 @@ module Racecar
 
       def tags=(tags)
         @tags = tags
-        clear
-      end
-
-      def close
-        @statsd&.close
-      end
-
-      private
-
-      def clear
-        close
-        @statsd = nil
       end
     end
 
     class StatsdSubscriber < ActiveSupport::Subscriber
       private
 
-      %w[increment histogram count timing gauge].each do |type|
+      %w[increment histogram count gauge measure].each do |type|
         define_method(type) do |*args, **kwargs|
           emit(type, *args, **kwargs)
         end
@@ -87,7 +56,7 @@ module Racecar
       def emit(type, *args, tags: {})
         tags = tags.map {|k, v| "#{k}:#{v}" }.to_a
 
-        Racecar::Datadog.statsd.send(type, *args, tags: tags)
+        Racecar::Statsd.statsd.send(type, *args, tags: tags)
       end
     end
 
@@ -101,7 +70,7 @@ module Racecar
         if event.payload.key?(:exception)
           increment("consumer.process_message.errors", tags: tags)
         else
-          timing("consumer.process_message.latency", event.duration, tags: tags)
+          measure("consumer.process_message.latency", event.duration, tags: tags)
           increment("consumer.messages", tags: tags)
         end
 
@@ -123,7 +92,7 @@ module Racecar
         if event.payload.key?(:exception)
           increment("consumer.process_batch.errors", tags: tags)
         else
-          timing("consumer.process_batch.latency", event.duration, tags: tags)
+          measure("consumer.process_batch.latency", event.duration, tags: tags)
           count("consumer.messages", messages, tags: tags)
         end
 
@@ -141,7 +110,7 @@ module Racecar
           group_id: event.payload.fetch(:group_id),
         }
 
-        timing("consumer.join_group", event.duration, tags: tags)
+        measure("consumer.join_group", event.duration, tags: tags)
 
         if event.payload.key?(:exception)
           increment("consumer.join_group.errors", tags: tags)
@@ -154,7 +123,7 @@ module Racecar
           group_id: event.payload.fetch(:group_id),
         }
 
-        timing("consumer.leave_group", event.duration, tags: tags)
+        measure("consumer.leave_group", event.duration, tags: tags)
 
         if event.payload.key?(:exception)
           increment("consumer.leave_group.errors", tags: tags)
@@ -232,7 +201,7 @@ module Racecar
           client: client,
         }
 
-        timing("producer.deliver.latency", event.duration, tags: tags)
+        measure("producer.deliver.latency", event.duration, tags: tags)
 
         # Messages delivered to Kafka:
         count("producer.deliver.messages", message_count, tags: tags)
@@ -244,7 +213,7 @@ module Racecar
         # Number of messages ACK'd for the topic.
         increment("producer.ack.messages", tags: tags)
       end
-      
+
       def produce_async(event)
         client = event.payload.fetch(:client_id)
         topic = event.payload.fetch(:topic)

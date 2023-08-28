@@ -146,20 +146,14 @@ module Racecar
     desc "The codec used to compress messages with"
     symbol :producer_compression_codec, allowed_values: %i{none lz4 snappy gzip}
 
-    desc "Enable Datadog metrics"
-    boolean :datadog_enabled, default: false
+    desc "Enable StatsD metrics"
+    boolean :statsd_enabled, default: false
 
-    desc "The host running the Datadog agent"
-    string :datadog_host
+    desc "The namespace to use for StatsD metrics"
+    string :statsd_namespace
 
-    desc "The port of the Datadog agent"
-    integer :datadog_port
-
-    desc "The namespace to use for Datadog metrics"
-    string :datadog_namespace
-
-    desc "Tags that should always be set on Datadog metrics"
-    list :datadog_tags
+    desc "Tags that should always be set on StatsD metrics"
+    list :statsd_tags
 
     desc "Whether to check the server certificate is valid for the hostname"
     boolean :ssl_verify_hostname, default: true
