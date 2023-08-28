@@ -96,7 +96,6 @@ module Racecar
       end
     ensure
       producer.close
-      Racecar::Datadog.close if Object.const_defined?("Racecar::Datadog")
       @instrumenter.instrument("shut_down", instrumentation_payload || {})
     end
 

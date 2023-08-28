@@ -48,8 +48,8 @@ module Racecar
         Racecar.logger.level = Object.const_get("Logger::#{config.log_level.upcase}")
       end
 
-      if config.datadog_enabled
-        configure_datadog
+      if config.statsd_enabled
+        configure_statsd
       end
 
       $stderr.puts "=> Wrooooom!"
@@ -153,15 +153,16 @@ module Racecar
       end
     end
 
-    def configure_datadog
-      require_relative './datadog'
+    def configure_statsd
+      require_relative './statsd'
 
-      Datadog.configure do |datadog|
-        datadog.host      = config.datadog_host unless config.datadog_host.nil?
-        datadog.port      = config.datadog_port unless config.datadog_port.nil?
-        datadog.namespace = config.datadog_namespace unless config.datadog_namespace.nil?
-        datadog.tags      = config.datadog_tags unless config.datadog_tags.nil?
-      end
+      statsd_params = {
+        prefix: config.statsd_namespace || "racecar",
+        default_tags: config.statsd_tags || ENV["STATSD_DEFAULT_TAGS"].to_s.split(","),
+        implementation: ENV.fetch("STATSD_IMPLEMENTATION", "datadog"),
+      }
+
+      StatsD.singleton_client = StatsD::Instrument::Client.from_env(**statsd_params)
     end
   end
 end

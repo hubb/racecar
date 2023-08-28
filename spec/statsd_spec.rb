@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require "racecar/datadog"
-RSpec.describe Racecar::Datadog::StatsdSubscriber do
+require "racecar/statsd"
+
+RSpec.describe Racecar::Statsd::StatsdSubscriber do
   describe '#emit' do
-    let(:subscriber)  { Racecar::Datadog::StatsdSubscriber.new }
+    let(:subscriber)  { Racecar::Statsd::StatsdSubscriber.new }
     let(:tags)        { { tag_1: 'race', tag_2: 'car'} }
 
     it 'publishes stats with tags' do
-      expect(Racecar::Datadog.statsd).
+      expect(Racecar::Statsd.statsd).
         to receive(:increment).
         with('metric', tags: ['tag_1:race', 'tag_2:car'])
 
@@ -29,14 +30,14 @@ def create_event(name, payload = {})
   end
 end
 
-RSpec.describe Racecar::Datadog::ConsumerSubscriber do
+RSpec.describe Racecar::Statsd::ConsumerSubscriber do
   before do
-    %w[increment histogram count timing gauge].each do |type|
+    %w[increment histogram count gauge].each do |type|
       allow(statsd).to receive(type)
     end
   end
-  let(:subscriber)  { Racecar::Datadog::ConsumerSubscriber.new }
-  let(:statsd)      { Racecar::Datadog.statsd }
+  let(:subscriber)  { Racecar::Statsd::ConsumerSubscriber.new }
+  let(:statsd)      { Racecar::Statsd.statsd }
 
   describe '#process_message' do
     let(:event) do
@@ -66,7 +67,7 @@ RSpec.describe Racecar::Datadog::ConsumerSubscriber do
 
     it 'publishes latency' do
       expect(statsd).
-        to receive(:timing).
+        to receive(:measure).
         with('consumer.process_message.latency', duration, tags: metric_tags)
 
       subscriber.process_message(event)
@@ -116,7 +117,7 @@ RSpec.describe Racecar::Datadog::ConsumerSubscriber do
 
     it 'publishes latency' do
       expect(statsd).
-        to receive(:timing).
+        to receive(:measure).
         with('consumer.process_batch.latency', duration, tags: metric_tags)
 
       subscriber.process_batch(event)
@@ -157,7 +158,7 @@ RSpec.describe Racecar::Datadog::ConsumerSubscriber do
 
     it 'publishes latency' do
       expect(statsd).
-        to receive(:timing).
+        to receive(:measure).
         with('consumer.join_group', duration, tags: metric_tags)
 
       subscriber.join_group(event)
@@ -182,7 +183,7 @@ RSpec.describe Racecar::Datadog::ConsumerSubscriber do
 
     it 'publishes latency' do
       expect(statsd).
-        to receive(:timing).
+        to receive(:measure).
         with('consumer.leave_group', duration, tags: metric_tags)
 
       subscriber.leave_group(event)
@@ -285,14 +286,14 @@ RSpec.describe Racecar::Datadog::ConsumerSubscriber do
   end
 end
 
-RSpec.describe Racecar::Datadog::ProducerSubscriber do
+RSpec.describe Racecar::Statsd::ProducerSubscriber do
   before do
     %w[increment histogram count timing gauge].each do |type|
       allow(statsd).to receive(type)
     end
   end
-  let(:subscriber)  { Racecar::Datadog::ProducerSubscriber.new }
-  let(:statsd)      { Racecar::Datadog.statsd }
+  let(:subscriber)  { Racecar::Statsd::ProducerSubscriber.new }
+  let(:statsd)      { Racecar::Statsd.statsd }
 
   describe '#produce_message' do
     let(:event) do
@@ -362,7 +363,7 @@ RSpec.describe Racecar::Datadog::ProducerSubscriber do
 
     it 'publishes delivery latency' do
       expect(statsd).
-        to receive(:timing).
+        to receive(:measure).
         with('producer.deliver.latency', duration, tags: metric_tags)
 
       subscriber.deliver_messages(event)
